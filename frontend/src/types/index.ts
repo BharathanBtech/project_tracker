@@ -9,18 +9,33 @@ export interface User {
   is_active: boolean;
 }
 
+export interface ProjectStatus {
+  id?: number;
+  project_id?: number;
+  status_name: string;
+  status_color: string;
+  status_order: number;
+  description?: string;
+  is_start_status: boolean;
+  is_end_status: boolean;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Project {
   id: number;
   title: string;
   description?: string;
   start_date?: string;
   end_date?: string;
-  status: 'active' | 'on_hold' | 'completed';
+  status: string; // Now uses custom statuses
   created_by: number;
   creator_first_name?: string;
   creator_last_name?: string;
   member_count?: number;
   members?: ProjectMember[];
+  statuses?: ProjectStatus[]; // Custom statuses for this project
   created_at: string;
   updated_at: string;
 }

@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import api from '../utils/api';
-import { Project } from '../types';
+import { Project, ProjectStatus } from '../types';
 import toast from 'react-hot-toast';
 import { FiPlus, FiFolder, FiUsers, FiCalendar, FiSearch, FiEdit3 } from 'react-icons/fi';
+import ProjectStatusConfig from '../components/ProjectStatusConfig';
 
 const Projects = () => {
   const { user } = useAuthStore();
@@ -16,21 +17,39 @@ const Projects = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [createStep, setCreateStep] = useState(1); // 1 = Basic Info, 2 = Status Config
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     start_date: '',
     end_date: '',
-    status: 'active' as 'active' | 'on_hold' | 'completed',
+    status: 'Planning',
   });
+  const [projectStatuses, setProjectStatuses] = useState<ProjectStatus[]>([]);
 
   useEffect(() => {
     fetchProjects();
+    fetchDefaultStatuses();
   }, []);
 
   useEffect(() => {
     filterProjects();
   }, [projects, searchTerm, statusFilter]);
+
+  const fetchDefaultStatuses = async () => {
+    try {
+      const response = await api.get('/project-statuses/default');
+      setProjectStatuses(response.data.statuses);
+    } catch (error) {
+      console.error('Failed to fetch default statuses:', error);
+      // Set hardcoded defaults if API fails
+      setProjectStatuses([
+        { status_name: 'Planning', status_color: '#9CA3AF', status_order: 0, is_start_status: true, is_end_status: false, description: 'Initial planning phase' },
+        { status_name: 'In Progress', status_color: '#3B82F6', status_order: 1, is_start_status: false, is_end_status: false, description: 'Active development' },
+        { status_name: 'Completed', status_color: '#10B981', status_order: 2, is_start_status: false, is_end_status: true, description: 'Project completed' },
+      ]);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -66,17 +85,45 @@ const Projects = () => {
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate statuses
+    if (projectStatuses.length === 0) {
+      toast.error('Please configure at least one status');
+      return;
+    }
+    
+    const startStatuses = projectStatuses.filter(s => s.is_start_status);
+    const endStatuses = projectStatuses.filter(s => s.is_end_status);
+    
+    if (startStatuses.length !== 1) {
+      toast.error('Please mark exactly one status as the start status');
+      return;
+    }
+    
+    if (endStatuses.length !== 1) {
+      toast.error('Please mark exactly one status as the end status');
+      return;
+    }
+    
     try {
-      await api.post('/projects', formData);
+      // Create project
+      const projectResponse = await api.post('/projects', formData);
+      const projectId = projectResponse.data.project.id;
+      
+      // Save statuses for the project
+      await api.put(`/project-statuses/project/${projectId}`, { statuses: projectStatuses });
+      
       toast.success('Project created successfully');
       setShowCreateModal(false);
+      setCreateStep(1); // Reset to first step
       setFormData({
         title: '',
         description: '',
         start_date: '',
         end_date: '',
-        status: 'active',
+        status: 'Planning',
       });
+      fetchDefaultStatuses(); // Reset to defaults
       fetchProjects();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create project');
@@ -240,98 +287,192 @@ const Projects = () => {
         )}
       </div>
 
-      {/* Create Project Modal */}
+      {/* Create Project Modal - Multi-Step Wizard */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Create New Project</h2>
-
-            <form onSubmit={handleCreateProject} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Project Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Enter project title"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  rows={4}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Enter project description"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">Create New Project</h2>
+              
+              {/* Step Indicator */}
+              <div className="flex items-center gap-4 mt-4">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                    createStep === 1 ? 'bg-primary-600 text-white' : 'bg-green-500 text-white'
+                  }`}>
+                    {createStep > 1 ? '✓' : '1'}
+                  </div>
+                  <span className={`text-sm font-medium ${createStep === 1 ? 'text-primary-600' : 'text-gray-600'}`}>
+                    Basic Information
+                  </span>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
+                <div className="flex-1 h-0.5 bg-gray-300"></div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                    createStep === 2 ? 'bg-primary-600 text-white' : 'bg-gray-300 text-gray-600'
+                  }`}>
+                    2
+                  </div>
+                  <span className={`text-sm font-medium ${createStep === 2 ? 'text-primary-600' : 'text-gray-400'}`}>
+                    Status Configuration
+                  </span>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      status: e.target.value as 'active' | 'on_hold' | 'completed',
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="active">Active</option>
-                  <option value="on_hold">On Hold</option>
-                  <option value="completed">Completed</option>
-                </select>
+            <form onSubmit={handleCreateProject} className="flex flex-col flex-1 overflow-hidden">
+              {/* Content Area - Scrollable */}
+              <div className="flex-1 overflow-y-auto px-6 py-6">
+                {/* Step 1: Basic Information */}
+                {createStep === 1 && (
+                  <div className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Project Title *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base"
+                        placeholder="Enter project title"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                      </label>
+                      <textarea
+                        rows={5}
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base"
+                        placeholder="Enter project description"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Start Date
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.start_date}
+                          onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          End Date
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.end_date}
+                          onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 2: Status Configuration */}
+                {createStep === 2 && (
+                  <div className="space-y-5">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Configure Project Workflow
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Define the statuses your project will go through from start to completion.
+                      </p>
+                      <ProjectStatusConfig
+                        statuses={projectStatuses}
+                        onChange={setProjectStatuses}
+                      />
+                    </div>
+
+                    {/* Initial Status Selection */}
+                    {projectStatuses.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Initial Status *
+                        </label>
+                        <select
+                          value={formData.status}
+                          onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base"
+                        >
+                          {projectStatuses
+                            .sort((a, b) => a.status_order - b.status_order)
+                            .map((status) => (
+                              <option key={status.status_name} value={status.status_name}>
+                                {status.status_name}
+                              </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Select the initial status for this project
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  Create Project
-                </button>
+              {/* Footer - Action Buttons */}
+              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <div className="flex gap-3">
+                  {createStep === 1 ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateModal(false);
+                          setCreateStep(1);
+                        }}
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-white transition-colors font-medium"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!formData.title.trim()) {
+                            toast.error('Please enter a project title');
+                            return;
+                          }
+                          setCreateStep(2);
+                        }}
+                        className="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium"
+                      >
+                        Next: Configure Status
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setCreateStep(1)}
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-white transition-colors font-medium"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium"
+                      >
+                        Create Project
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </form>
           </div>

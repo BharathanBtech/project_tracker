@@ -706,7 +706,7 @@ const TaskDetail = () => {
                     </div>
                     <p className="text-sm text-gray-500">
                       Uploaded by {attachment.first_name} {attachment.last_name} • 
-                      {attachment.file_size > 0 ? ` ${Math.round(attachment.file_size / 1024)}KB` : 'External link'}
+                      {attachment.file_size && attachment.file_size > 0 ? ` ${Math.round(attachment.file_size / 1024)}KB` : 'External link'}
                       {attachment.attachment_type === 'url' && attachment.file_url && (
                         <span className="ml-2 text-blue-600 text-xs">
                           {new URL(attachment.file_url).hostname}
