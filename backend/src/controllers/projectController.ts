@@ -6,8 +6,15 @@ export const createProject = async (req: Request, res: Response) => {
     const { title, description, start_date, end_date, status } = req.body;
     const created_by = req.user?.id;
 
+    console.log('Create project request:', { title, description, start_date, end_date, status, created_by });
+    console.log('User from request:', req.user);
+
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
+    }
+
+    if (!created_by) {
+      return res.status(400).json({ error: 'User ID is required' });
     }
 
     const [project] = await db('projects')
@@ -21,6 +28,7 @@ export const createProject = async (req: Request, res: Response) => {
       })
       .returning('*');
 
+    console.log('Project created successfully:', project);
     res.status(201).json({ message: 'Project created successfully', project });
   } catch (error) {
     console.error('Create project error:', error);
@@ -31,6 +39,9 @@ export const createProject = async (req: Request, res: Response) => {
 export const getAllProjects = async (req: Request, res: Response) => {
   try {
     const { status } = req.query;
+    const userRole = req.user?.role;
+    const userId = req.user?.id;
+
 
     let query = db('projects')
       .select(
@@ -40,11 +51,26 @@ export const getAllProjects = async (req: Request, res: Response) => {
       )
       .leftJoin('users', 'projects.created_by', 'users.id');
 
+    // Filter projects based on user role
+    if (userRole === 'member') {
+      // Members can only see projects they are part of
+      query = query
+        .join('project_members', 'projects.id', 'project_members.project_id')
+        .where('project_members.user_id', userId);
+    } else if (userRole === 'lead') {
+      // Leads can only see projects they are part of
+      query = query
+        .join('project_members', 'projects.id', 'project_members.project_id')
+        .where('project_members.user_id', userId);
+    }
+    // Admin and Manager can see all projects (no additional filtering)
+
     if (status) {
       query = query.where('projects.status', status);
     }
 
     const projects = await query.orderBy('projects.created_at', 'desc');
+
 
     // Get member count for each project
     for (const project of projects) {
@@ -64,16 +90,30 @@ export const getAllProjects = async (req: Request, res: Response) => {
 export const getProjectById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userRole = req.user?.role;
+    const userId = req.user?.id;
 
-    const project = await db('projects')
+    let query = db('projects')
       .where({ 'projects.id': id })
       .select(
         'projects.*',
         'users.first_name as creator_first_name',
         'users.last_name as creator_last_name'
       )
-      .leftJoin('users', 'projects.created_by', 'users.id')
-      .first();
+      .leftJoin('users', 'projects.created_by', 'users.id');
+
+    // For leads and members, check if they are part of the project
+    if (userRole === 'member' || userRole === 'lead') {
+      const isMember = await db('project_members')
+        .where({ project_id: id, user_id: userId })
+        .first();
+      
+      if (!isMember) {
+        return res.status(403).json({ error: 'Access denied. You are not a member of this project.' });
+      }
+    }
+
+    const project = await query.first();
 
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
@@ -126,6 +166,31 @@ export const updateProject = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Update project error:', error);
     res.status(500).json({ error: 'Failed to update project' });
+  }
+};
+
+export const updateProjectStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status || !['active', 'on_hold', 'completed'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be: active, on_hold, or completed' });
+    }
+
+    const [project] = await db('projects')
+      .where({ id })
+      .update({ status })
+      .returning('*');
+
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.json({ message: 'Project status updated successfully', project });
+  } catch (error) {
+    console.error('Update project status error:', error);
+    res.status(500).json({ error: 'Failed to update project status' });
   }
 };
 

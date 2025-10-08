@@ -11,6 +11,7 @@ import userRoutes from './routes/userRoutes';
 import leaveRoutes from './routes/leaveRoutes';
 import projectRoutes from './routes/projectRoutes';
 import taskRoutes from './routes/taskRoutes';
+import settingsRoutes from './routes/settingsRoutes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -37,6 +38,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

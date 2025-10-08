@@ -32,7 +32,13 @@ export const getLeaveRequests = async (req: Request, res: Response) => {
     const { user_id, status } = req.query;
 
     let query = db('leave_dates')
-      .select('leave_dates.*', 'users.first_name', 'users.last_name', 'users.email')
+      .select(
+        'leave_dates.*',
+        'users.first_name',
+        'users.last_name',
+        'users.email',
+        'users.department'
+      )
       .join('users', 'leave_dates.user_id', 'users.id');
 
     if (user_id) {
@@ -45,7 +51,18 @@ export const getLeaveRequests = async (req: Request, res: Response) => {
 
     const leaves = await query.orderBy('leave_dates.start_date', 'desc');
 
-    res.json({ leaves });
+    // Transform the response to match the frontend interface
+    const formattedLeaves = leaves.map(leave => ({
+      ...leave,
+      user: {
+        first_name: leave.first_name,
+        last_name: leave.last_name,
+        email: leave.email,
+        department: leave.department
+      }
+    }));
+
+    res.json({ leaves: formattedLeaves });
   } catch (error) {
     console.error('Get leave requests error:', error);
     res.status(500).json({ error: 'Failed to fetch leave requests' });

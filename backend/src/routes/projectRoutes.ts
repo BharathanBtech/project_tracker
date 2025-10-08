@@ -4,6 +4,7 @@ import {
   getAllProjects,
   getProjectById,
   updateProject,
+  updateProjectStatus,
   deleteProject,
   addProjectMember,
   removeProjectMember,
@@ -14,10 +15,11 @@ import { authenticate, authorize } from '../middleware/auth';
 
 const router = Router();
 
-router.post('/', authenticate, authorize('admin', 'manager', 'lead'), createProject);
+router.post('/', authenticate, authorize('admin', 'manager'), createProject);
 router.get('/', authenticate, getAllProjects);
 router.get('/:id', authenticate, getProjectById);
-router.patch('/:id', authenticate, authorize('admin', 'manager', 'lead'), updateProject);
+router.patch('/:id', authenticate, authorize('admin', 'manager'), updateProject);
+router.patch('/:id/status', authenticate, authorize('admin', 'manager', 'lead'), updateProjectStatus);
 router.delete('/:id', authenticate, authorize('admin', 'manager'), deleteProject);
 
 // Project members

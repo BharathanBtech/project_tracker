@@ -16,6 +16,7 @@ export interface RolePermissions {
     canViewAllProjects: boolean;
     canViewAllTasks: boolean;
     canManageProjectMembers: boolean;
+    canAccessSettings: boolean;
   };
 }
 
@@ -30,6 +31,7 @@ export const ROLE_PERMISSIONS: RolePermissions = {
     canViewAllProjects: true,
     canViewAllTasks: true,
     canManageProjectMembers: true,
+    canAccessSettings: true,
   },
   manager: {
     canViewUsers: true,
@@ -40,16 +42,18 @@ export const ROLE_PERMISSIONS: RolePermissions = {
     canViewAllProjects: true,
     canViewAllTasks: true,
     canManageProjectMembers: true,
+    canAccessSettings: true,
   },
   lead: {
     canViewUsers: true,
     canManageUsers: false,
-    canCreateProjects: true,
+    canCreateProjects: false,
     canDeleteProjects: false,
     canManageLeaveRequests: false,
-    canViewAllProjects: true,
+    canViewAllProjects: false,
     canViewAllTasks: true,
     canManageProjectMembers: true,
+    canAccessSettings: false,
   },
   member: {
     canViewUsers: false,
@@ -60,6 +64,7 @@ export const ROLE_PERMISSIONS: RolePermissions = {
     canViewAllProjects: false,
     canViewAllTasks: false,
     canManageProjectMembers: false,
+    canAccessSettings: false,
   },
 };
 
@@ -84,7 +89,7 @@ export const getNavigationItems = (userRole: string): NavigationItem[] => {
       name: 'All Projects',
       href: '/projects/all',
       icon: 'FiFolderPlus',
-      roles: ['admin', 'manager', 'lead'],
+      roles: ['admin', 'manager'],
       description: 'All projects in the system',
     },
     {
@@ -98,7 +103,7 @@ export const getNavigationItems = (userRole: string): NavigationItem[] => {
       name: 'All Tasks',
       href: '/tasks/all',
       icon: 'FiList',
-      roles: ['admin', 'manager', 'lead'],
+      roles: ['admin', 'manager'],
       description: 'All tasks in the system',
     },
     {
@@ -128,6 +133,13 @@ export const getNavigationItems = (userRole: string): NavigationItem[] => {
       icon: 'FiCheckCircle',
       roles: ['admin', 'manager', 'lead'],
       description: 'Approve/reject leave requests',
+    },
+    {
+      name: 'Settings',
+      href: '/settings',
+      icon: 'FiSettings',
+      roles: ['admin', 'manager'],
+      description: 'System configuration and settings',
     },
   ];
 

@@ -37,7 +37,7 @@ const Dashboard = () => {
       const [projectsRes, tasksRes, myTasksRes] = await Promise.all([
         api.get('/projects'),
         api.get('/tasks'),
-        api.get(`/tasks?assigned_to=${user?.id}`),
+        user?.id ? api.get(`/tasks?assigned_to=${user.id}`) : Promise.resolve({ data: { tasks: [] } }),
       ]);
 
       const projects = projectsRes.data.projects;

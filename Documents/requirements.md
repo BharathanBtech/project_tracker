@@ -32,6 +32,8 @@ Backend -  Node.JS + Express
 
 6, Develop the project Phase by Phase
 
+7, Have rolePermissions file under config folder to have role based permissions
+
 
 Phase 1:
 ## 1. Core Modules

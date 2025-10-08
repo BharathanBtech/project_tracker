@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import api from '../utils/api';
 import { Project } from '../types';
 import toast from 'react-hot-toast';
-import { FiPlus, FiFolder, FiUsers, FiCalendar, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiFolder, FiUsers, FiCalendar, FiSearch, FiEdit3 } from 'react-icons/fi';
 
 const Projects = () => {
   const { user } = useAuthStore();
@@ -14,6 +14,8 @@ const Projects = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -34,19 +36,8 @@ const Projects = () => {
     try {
       setLoading(true);
       const response = await api.get('/projects');
-      const allProjects = response.data.projects;
-      
-      // For regular users, only show projects they are members of
-      // For admin/manager/lead, show all projects
-      if (['admin', 'manager', 'lead'].includes(user?.role || '')) {
-        setProjects(allProjects);
-      } else {
-        // Filter projects where user is a member
-        const userProjects = allProjects.filter((project: any) => 
-          project.members?.some((member: any) => member.user_id === user?.id)
-        );
-        setProjects(userProjects);
-      }
+      // Backend already filters projects based on user role and membership
+      setProjects(response.data.projects);
     } catch (error) {
       toast.error('Failed to fetch projects');
       console.error(error);
@@ -92,6 +83,20 @@ const Projects = () => {
     }
   };
 
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (!selectedProject) return;
+    
+    try {
+      await api.patch(`/projects/${selectedProject.id}/status`, { status: newStatus });
+      toast.success('Project status updated successfully');
+      setShowStatusModal(false);
+      setSelectedProject(null);
+      fetchProjects();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to update project status');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -105,7 +110,8 @@ const Projects = () => {
     }
   };
 
-  const canCreateProject = ['admin', 'manager', 'lead'].includes(user?.role || '');
+  const canCreateProject = ['admin', 'manager'].includes(user?.role || '');
+  const canUpdateStatus = ['admin', 'manager', 'lead'].includes(user?.role || '');
 
   if (loading) {
     return (
@@ -183,13 +189,28 @@ const Projects = () => {
                 <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
                   <FiFolder className="text-primary-600" size={24} />
                 </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium capitalize border ${getStatusColor(
-                    project.status
-                  )}`}
-                >
-                  {project.status.replace('_', ' ')}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium capitalize border ${getStatusColor(
+                      project.status
+                    )}`}
+                  >
+                    {project.status.replace('_', ' ')}
+                  </span>
+                  {canUpdateStatus && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setSelectedProject(project);
+                        setShowStatusModal(true);
+                      }}
+                      className="p-1 text-gray-400 hover:text-primary-600 transition-colors"
+                      title="Update status"
+                    >
+                      <FiEdit3 size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <h3 className="text-xl font-bold text-gray-900 mb-2">{project.title}</h3>
@@ -313,6 +334,77 @@ const Projects = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Status Update Modal */}
+      {showStatusModal && selectedProject && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Update Project Status</h2>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Project: {selectedProject.title}
+              </label>
+              <p className="text-sm text-gray-600">
+                Current Status: <span className="font-medium capitalize">{selectedProject.status.replace('_', ' ')}</span>
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Select New Status
+              </label>
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleStatusUpdate('active')}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div>
+                      <p className="font-medium text-gray-900">Active</p>
+                      <p className="text-sm text-gray-600">Project is in progress</p>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => handleStatusUpdate('on_hold')}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-yellow-300 hover:bg-yellow-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div>
+                      <p className="font-medium text-gray-900">On Hold</p>
+                      <p className="text-sm text-gray-600">Project is temporarily paused</p>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => handleStatusUpdate('completed')}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                    <div>
+                      <p className="font-medium text-gray-900">Completed</p>
+                      <p className="text-sm text-gray-600">Project has been finished</p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowStatusModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

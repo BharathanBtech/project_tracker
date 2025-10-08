@@ -14,8 +14,11 @@ import Tasks from './pages/Tasks';
 import AllTasks from './pages/AllTasks';
 import TaskDetail from './pages/TaskDetail';
 import Users from './pages/Users';
+import UserManagement from './pages/UserManagement';
 import Leaves from './pages/Leaves';
+import LeaveApprovals from './pages/LeaveApprovals';
 import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 
 // Components
 import Layout from './components/Layout';
@@ -54,8 +57,11 @@ function App() {
             <Route path="tasks/all" element={<AllTasks />} />
             <Route path="tasks/:id" element={<TaskDetail />} />
             <Route path="users" element={<Users />} />
+            <Route path="users/manage" element={<UserManagement />} />
             <Route path="leaves" element={<Leaves />} />
+            <Route path="leaves/approve" element={<LeaveApprovals />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
 
           {/* Catch all */}

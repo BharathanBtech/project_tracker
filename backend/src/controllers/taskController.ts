@@ -47,6 +47,9 @@ export const createTask = async (req: Request, res: Response) => {
 export const getAllTasks = async (req: Request, res: Response) => {
   try {
     const { project_id, assigned_to, status, priority } = req.query;
+    const userRole = req.user?.role;
+    const userId = req.user?.id;
+
 
     let query = db('tasks')
       .select(
@@ -61,11 +64,25 @@ export const getAllTasks = async (req: Request, res: Response) => {
       .leftJoin('users as creator', 'tasks.created_by', 'creator.id')
       .leftJoin('projects', 'tasks.project_id', 'projects.id');
 
+    // Filter tasks based on user role
+    if (userRole === 'member') {
+      // Members can only see tasks from projects they are part of
+      query = query
+        .join('project_members', 'tasks.project_id', 'project_members.project_id')
+        .where('project_members.user_id', userId);
+    } else if (userRole === 'lead') {
+      // Leads can only see tasks from projects they are part of
+      query = query
+        .join('project_members', 'tasks.project_id', 'project_members.project_id')
+        .where('project_members.user_id', userId);
+    }
+    // Admin and Manager can see all tasks (no additional filtering)
+
     if (project_id) {
       query = query.where('tasks.project_id', project_id);
     }
 
-    if (assigned_to) {
+    if (assigned_to && assigned_to !== 'undefined') {
       query = query.where('tasks.assigned_to', assigned_to);
     }
 
@@ -78,6 +95,7 @@ export const getAllTasks = async (req: Request, res: Response) => {
     }
 
     const tasks = await query.orderBy('tasks.created_at', 'desc');
+
 
     res.json({ tasks });
   } catch (error) {

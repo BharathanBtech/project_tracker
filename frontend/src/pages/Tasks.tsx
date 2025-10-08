@@ -15,6 +15,7 @@ const Tasks = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [projectFilter, setProjectFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formData, setFormData] = useState({
     project_id: '',
@@ -33,7 +34,7 @@ const Tasks = () => {
 
   useEffect(() => {
     filterTasks();
-  }, [tasks, searchTerm, statusFilter, priorityFilter]);
+  }, [tasks, searchTerm, statusFilter, priorityFilter, projectFilter]);
 
   const fetchData = async () => {
     try {
@@ -67,6 +68,10 @@ const Tasks = () => {
 
     if (priorityFilter !== 'all') {
       filtered = filtered.filter((task) => task.priority === priorityFilter);
+    }
+
+    if (projectFilter !== 'all') {
+      filtered = filtered.filter((task) => task.project_id === Number(projectFilter));
     }
 
     setFilteredTasks(filtered);
@@ -144,7 +149,7 @@ const Tasks = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="relative">
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
@@ -155,6 +160,19 @@ const Tasks = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
+
+          <select
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          >
+            <option value="all">All Projects</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
 
           <select
             value={statusFilter}
