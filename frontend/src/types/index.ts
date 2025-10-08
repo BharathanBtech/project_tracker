@@ -58,6 +58,7 @@ export interface Task {
   subtasks?: Task[];
   dependencies?: TaskDependency[];
   attachments?: Attachment[];
+  comments?: TaskComment[];
   created_at: string;
   updated_at: string;
 }
@@ -73,11 +74,30 @@ export interface Attachment {
   id: number;
   task_id: number;
   file_name: string;
-  file_path: string;
+  file_path?: string;
   file_type?: string;
   file_size?: number;
+  attachment_type?: 'file' | 'url';
+  file_url?: string;
+  file_hash?: string;
+  mime_type?: string;
   uploaded_by: number;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
   created_at: string;
+}
+
+export interface TaskComment {
+  id: number;
+  task_id: number;
+  user_id: number;
+  comment: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface LeaveDate {

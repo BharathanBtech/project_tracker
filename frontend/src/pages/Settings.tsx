@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { FiSettings, FiCpu, FiCalendar, FiClock, FiShield } from 'react-icons/fi';
+import { FiSettings, FiCpu, FiCalendar, FiClock, FiShield, FiUpload } from 'react-icons/fi';
 import LLMProviderSettings from '../components/settings/LLMProviderSettings';
 import WorkingDaysSettings from '../components/settings/WorkingDaysSettings';
 import WorkingHoursSettings from '../components/settings/WorkingHoursSettings';
 import RolePermissionsSettings from '../components/settings/RolePermissionsSettings';
+import AttachmentSettings from '../components/settings/AttachmentSettings';
 
-type SettingsTab = 'llm-providers' | 'working-days' | 'working-hours' | 'role-permissions';
+type SettingsTab = 'llm-providers' | 'working-days' | 'working-hours' | 'role-permissions' | 'attachment-settings';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('llm-providers');
@@ -13,28 +14,34 @@ const Settings = () => {
   const settingsTabs = [
     {
       id: 'llm-providers' as SettingsTab,
-      name: 'LLM Providers',
+      name: 'AI Provider Configuration',
       icon: FiCpu,
       description: 'Configure AI providers and models'
     },
     {
       id: 'working-days' as SettingsTab,
-      name: 'Working Days',
+      name: 'Working Days Calendar',
       icon: FiCalendar,
       description: 'Set working days and holidays'
     },
     {
       id: 'working-hours' as SettingsTab,
-      name: 'Working Hours',
+      name: 'Working Hours Schedule',
       icon: FiClock,
       description: 'Configure daily working hours'
     },
-    {
-      id: 'role-permissions' as SettingsTab,
-      name: 'Role & Permissions',
-      icon: FiShield,
-      description: 'Manage user role permissions'
-    }
+        {
+          id: 'role-permissions' as SettingsTab,
+          name: 'Role & Permission Management',
+          icon: FiShield,
+          description: 'Manage role-based access control'
+        },
+        {
+          id: 'attachment-settings' as SettingsTab,
+          name: 'Attachment Configuration',
+          icon: FiUpload,
+          description: 'Configure file upload limits and attachment settings'
+        }
   ];
 
   const renderActiveTab = () => {
@@ -47,6 +54,8 @@ const Settings = () => {
         return <WorkingHoursSettings />;
       case 'role-permissions':
         return <RolePermissionsSettings />;
+      case 'attachment-settings':
+        return <AttachmentSettings />;
       default:
         return <LLMProviderSettings />;
     }

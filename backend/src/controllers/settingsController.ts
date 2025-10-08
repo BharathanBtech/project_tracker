@@ -297,3 +297,172 @@ export const updateRolePermissionsConfig = async (req: Request, res: Response) =
     res.status(500).json({ error: 'Failed to update role permissions configuration' });
   }
 };
+
+// Permission Matrix Management
+export const getPermissionMatrix = async (req: Request, res: Response) => {
+  try {
+    const permissions = await db('role_permissions_config')
+      .select('*')
+      .orderBy(['role', 'permission_key']);
+
+    // Transform to matrix format - include all roles dynamically
+    const matrix: Record<string, Record<string, boolean>> = {};
+
+    permissions.forEach(perm => {
+      if (!matrix[perm.role]) {
+        matrix[perm.role] = {};
+      }
+      matrix[perm.role][perm.permission_key] = perm.is_enabled;
+    });
+
+    res.json({ matrix });
+  } catch (error) {
+    console.error('Get permission matrix error:', error);
+    res.status(500).json({ error: 'Failed to fetch permission matrix' });
+  }
+};
+
+export const updatePermissionMatrix = async (req: Request, res: Response) => {
+  try {
+    const { matrix } = req.body;
+
+    if (!matrix || typeof matrix !== 'object') {
+      return res.status(400).json({ error: 'Invalid permission matrix format' });
+    }
+
+    // Update permissions for each role
+    for (const [role, permissions] of Object.entries(matrix)) {
+      for (const [permissionKey, isEnabled] of Object.entries(permissions as Record<string, boolean>)) {
+        // Check if permission exists
+        const existing = await db('role_permissions_config')
+          .where({ role, permission_key: permissionKey })
+          .first();
+
+        if (existing) {
+          // Update existing permission
+          await db('role_permissions_config')
+            .where({ role, permission_key: permissionKey })
+            .update({ is_enabled: isEnabled });
+        } else {
+          // Insert new permission
+          await db('role_permissions_config')
+            .insert({
+              role,
+              permission_key: permissionKey,
+              is_enabled: isEnabled,
+              description: null
+            });
+        }
+      }
+    }
+
+    // Fetch updated matrix
+    const updatedPermissions = await db('role_permissions_config')
+      .select('*')
+      .orderBy(['role', 'permission_key']);
+
+    const updatedMatrix: Record<string, Record<string, boolean>> = {};
+
+    updatedPermissions.forEach(perm => {
+      if (!updatedMatrix[perm.role]) {
+        updatedMatrix[perm.role] = {};
+      }
+      updatedMatrix[perm.role][perm.permission_key] = perm.is_enabled;
+    });
+
+    res.json({ matrix: updatedMatrix, message: 'Permission matrix updated successfully' });
+  } catch (error) {
+    console.error('Update permission matrix error:', error);
+    res.status(500).json({ error: 'Failed to update permission matrix' });
+  }
+};
+
+// Attachment Configuration functions
+export const getAttachmentConfig = async (req: Request, res: Response) => {
+  try {
+    const configs = await db('attachment_config')
+      .select('*')
+      .orderBy('config_key');
+
+    // Parse JSON values
+    const parsedConfigs = configs.map(config => ({
+      ...config,
+      config_value: config.config_key === 'max_file_size' || 
+                   config.config_key === 'enable_url_attachments' ||
+                   config.config_key === 'allowed_file_types' ||
+                   config.config_key === 'allowed_file_extensions'
+        ? JSON.parse(config.config_value)
+        : config.config_value
+    }));
+
+    res.json({ configs: parsedConfigs });
+  } catch (error) {
+    console.error('Get attachment config error:', error);
+    res.status(500).json({ error: 'Failed to fetch attachment configuration' });
+  }
+};
+
+export const updateAttachmentConfig = async (req: Request, res: Response) => {
+  try {
+    const { configs } = req.body;
+
+    if (!configs || !Array.isArray(configs)) {
+      return res.status(400).json({ error: 'Invalid configuration format' });
+    }
+
+    for (const config of configs) {
+      const { config_key, config_value, description, is_active } = config;
+
+      // Convert object/array values to JSON string
+      const stringValue = typeof config_value === 'object' 
+        ? JSON.stringify(config_value) 
+        : config_value;
+
+      // Check if config exists
+      const existing = await db('attachment_config')
+        .where({ config_key })
+        .first();
+
+      if (existing) {
+        // Update existing config
+        await db('attachment_config')
+          .where({ config_key })
+          .update({
+            config_value: stringValue,
+            description,
+            is_active
+          });
+      } else {
+        // Insert new config
+        await db('attachment_config')
+          .insert({
+            config_key,
+            config_value: stringValue,
+            description,
+            is_active
+          });
+      }
+    }
+
+    // Fetch updated configs
+    const updatedConfigs = await db('attachment_config')
+      .select('*')
+      .orderBy('config_key');
+
+    // Parse JSON values
+    const parsedConfigs = updatedConfigs.map(config => ({
+      ...config,
+      config_value: config.config_key === 'max_file_size' || 
+                   config.config_key === 'enable_url_attachments' ||
+                   config.config_key === 'allowed_file_types' ||
+                   config.config_key === 'allowed_file_extensions'
+        ? JSON.parse(config.config_value)
+        : config.config_value
+    }));
+
+    res.json({ configs: parsedConfigs, message: 'Attachment configuration updated successfully' });
+  } catch (error) {
+    console.error('Update attachment config error:', error);
+    res.status(500).json({ error: 'Failed to update attachment configuration' });
+  }
+};

@@ -40,6 +40,9 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/settings', settingsRoutes);
 
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'Server is running' });

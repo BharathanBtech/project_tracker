@@ -3,13 +3,23 @@ import { verifyToken } from '../utils/jwt';
 
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
   try {
-    const authHeader = req.headers.authorization;
+    let token: string | undefined;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Try to get token from Authorization header first
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+
+    // If no token in header, try query parameter (for download links)
+    if (!token && req.query.token) {
+      token = req.query.token as string;
+    }
+
+    if (!token) {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const token = authHeader.substring(7);
     const decoded = verifyToken(token);
     req.user = decoded;
     next();
@@ -18,8 +28,8 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
-export const authorize = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const authorize = (...roles: string[]) =>
+  (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -30,5 +40,4 @@ export const authorize = (...roles: string[]) => {
 
     next();
   };
-};
 

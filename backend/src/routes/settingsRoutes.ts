@@ -22,7 +22,15 @@ import {
   
   // Role Permissions
   getRolePermissionsConfig,
-  updateRolePermissionsConfig
+  updateRolePermissionsConfig,
+  
+  // Permission Matrix
+  getPermissionMatrix,
+  updatePermissionMatrix,
+  
+  // Attachment Configuration
+  getAttachmentConfig,
+  updateAttachmentConfig
 } from '../controllers/settingsController';
 
 const router = Router();
@@ -53,5 +61,13 @@ router.put('/working-hours', updateWorkingHoursConfig);
 // Role Permissions Configuration routes
 router.get('/role-permissions', getRolePermissionsConfig);
 router.put('/role-permissions', updateRolePermissionsConfig);
+
+// Permission Matrix routes
+router.get('/permission-matrix', getPermissionMatrix);
+router.put('/permission-matrix', updatePermissionMatrix);
+
+// Attachment Configuration routes
+router.get('/attachment-config', getAttachmentConfig);
+router.put('/attachment-config', updateAttachmentConfig);
 
 export default router;

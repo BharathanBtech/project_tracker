@@ -35,35 +35,35 @@ Backend -  Node.JS + Express
 7, Have rolePermissions file under config folder to have role based permissions
 
 
-Phase 1:
+Phase 1: ✅ **COMPLETED**
 ## 1. Core Modules
 
 ### 1.1 User Management
-- [ ] User Registration & Login (Email/password, OAuth)
-- [ ] Role-based access: Admin, Manager, Lead, Team members
-- [ ] Profile: Name, email, avatar, department
-- [ ] Leave Management: Add/view leave dates
+- [x] User Registration & Login (Email/password, OAuth)
+- [x] Role-based access: Admin, Manager, Lead, Team members
+- [x] Profile: Name, email, avatar, department
+- [x] Leave Management: Add/view leave dates
 
 ### 1.2 Project Management
-- [ ] Create/Edit/Delete Projects
-  - [ ] Title, description, start/end dates
-  - [ ] Status: Active, On Hold, Completed
-- [ ] Assign Members with Roles:
-  - [ ] Developer, Tester, Business Analyst, Designer, etc.
-- [ ] View Participant Breakdown by Role
+- [x] Create/Edit/Delete Projects
+  - [x] Title, description, start/end dates
+  - [x] Status: Active, On Hold, Completed
+- [x] Assign Members with Roles:
+  - [x] Developer, Tester, Business Analyst, Designer, etc.
+- [x] View Participant Breakdown by Role
 
 ### 1.3 Task Management
-- [ ] Create/Edit/Delete Tasks
-  - [ ] Title, description, priority (Low, Medium, High)
-  - [ ] Status: To Do, In Progress, Done, Blocked
-  - [ ] Due date, estimated hours
-  - [ ] Complexity Rating: ⭐ 1–5 stars
-    - [ ] 1–2 stars: Simple
-    - [ ] 3 stars: Moderate
-    - [ ] 4–5 stars: Complex
-- [ ] Assign Tasks to Users
-- [ ] Subtasks and Dependencies
-- [ ] Attachments (PDF, images, docs)
+- [x] Create/Edit/Delete Tasks
+  - [x] Title, description, priority (Low, Medium, High)
+  - [x] Status: To Do, In Progress, Done, Blocked
+  - [x] Due date, estimated hours
+  - [x] Complexity Rating: ⭐ 1–5 stars
+    - [x] 1–2 stars: Simple
+    - [x] 3 stars: Moderate
+    - [x] 4–5 stars: Complex
+- [x] Assign Tasks to Users
+- [x] Subtasks and Dependencies
+- [x] Attachments (PDF, images, docs)
 - [ ] AI Suggestions:
   - [ ] Auto-estimate complexity based on description
   - [ ] Recommend assignees based on availability and skill
