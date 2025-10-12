@@ -6,6 +6,7 @@ import { Project, ProjectStatus } from '../types';
 import toast from 'react-hot-toast';
 import { FiPlus, FiFolder, FiUsers, FiCalendar, FiSearch, FiLock } from 'react-icons/fi';
 import ProjectStatusConfig from '../components/ProjectStatusConfig';
+import ProjectDocumentUpload from '../components/ProjectDocumentUpload';
 
 const AllProjects = () => {
   const { user } = useAuthStore();
@@ -15,7 +16,7 @@ const AllProjects = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createStep, setCreateStep] = useState(1); // 1 = Basic Info, 2 = Status Config
+  const [createStep, setCreateStep] = useState(1); // 1 = Basic Info, 2 = Status Config, 3 = Documents
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -24,6 +25,7 @@ const AllProjects = () => {
     status: 'Planning',
   });
   const [projectStatuses, setProjectStatuses] = useState<ProjectStatus[]>([]);
+  const [projectDocuments, setProjectDocuments] = useState<any[]>([]);
 
   useEffect(() => {
     fetchProjects();
@@ -80,8 +82,7 @@ const AllProjects = () => {
     setFilteredProjects(filtered);
   };
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateProject = async () => {
     
     // Validate statuses
     if (projectStatuses.length === 0) {
@@ -103,12 +104,39 @@ const AllProjects = () => {
     }
     
     try {
+      // Prepare project data - convert empty end_date to null
+      const projectData = {
+        ...formData,
+        end_date: formData.end_date || null
+      };
+      
       // Create project
-      const projectResponse = await api.post('/projects', formData);
+      const projectResponse = await api.post('/projects', projectData);
       const projectId = projectResponse.data.project.id;
       
       // Save statuses for the project
       await api.put(`/project-statuses/project/${projectId}`, { statuses: projectStatuses });
+      
+      // Upload documents if any
+      if (projectDocuments.length > 0) {
+        for (const doc of projectDocuments) {
+          const docFormData = new FormData();
+          docFormData.append('file', doc.file);
+          docFormData.append('attachment_type', 'file');
+          docFormData.append('description', doc.description || '');
+          
+          try {
+            await api.post(`/project-attachments/${projectId}`, docFormData, {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+              },
+            });
+          } catch (docError) {
+            console.error('Failed to upload document:', doc.name, docError);
+            toast.error(`Failed to upload document: ${doc.name}`);
+          }
+        }
+      }
       
       toast.success('Project created successfully');
       setShowCreateModal(false);
@@ -121,6 +149,7 @@ const AllProjects = () => {
         status: 'Planning',
       });
       fetchDefaultStatuses(); // Reset to defaults
+      setProjectDocuments([]); // Reset documents
       fetchProjects();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create project');
@@ -267,32 +296,52 @@ const AllProjects = () => {
               <h2 className="text-2xl font-bold text-gray-900">Create New Project</h2>
               
               {/* Step Indicator */}
-              <div className="flex items-center gap-4 mt-4">
+              <div className="flex items-center mt-4">
+                {/* Step 1 */}
                 <div className="flex items-center gap-2">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                    createStep === 1 ? 'bg-primary-600 text-white' : 'bg-green-500 text-white'
+                    createStep === 1 ? 'bg-primary-600 text-white' : createStep > 1 ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
                   }`}>
                     {createStep > 1 ? '✓' : '1'}
                   </div>
-                  <span className={`text-sm font-medium ${createStep === 1 ? 'text-primary-600' : 'text-gray-600'}`}>
+                  <span className={`text-sm font-medium ${createStep === 1 ? 'text-primary-600' : createStep > 1 ? 'text-gray-600' : 'text-gray-400'}`}>
                     Basic Information
                   </span>
                 </div>
-                <div className="flex-1 h-0.5 bg-gray-300"></div>
+                
+                {/* Connector 1 */}
+                <div className="flex-1 h-0.5 bg-gray-300 mx-4"></div>
+                
+                {/* Step 2 */}
                 <div className="flex items-center gap-2">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                    createStep === 2 ? 'bg-primary-600 text-white' : 'bg-gray-300 text-gray-600'
+                    createStep === 2 ? 'bg-primary-600 text-white' : createStep > 2 ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
                   }`}>
-                    2
+                    {createStep > 2 ? '✓' : '2'}
                   </div>
-                  <span className={`text-sm font-medium ${createStep === 2 ? 'text-primary-600' : 'text-gray-400'}`}>
+                  <span className={`text-sm font-medium ${createStep === 2 ? 'text-primary-600' : createStep > 2 ? 'text-gray-600' : 'text-gray-400'}`}>
                     Status Configuration
+                  </span>
+                </div>
+                
+                {/* Connector 2 */}
+                <div className="flex-1 h-0.5 bg-gray-300 mx-4"></div>
+                
+                {/* Step 3 */}
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                    createStep === 3 ? 'bg-primary-600 text-white' : 'bg-gray-300 text-gray-600'
+                  }`}>
+                    3
+                  </div>
+                  <span className={`text-sm font-medium ${createStep === 3 ? 'text-primary-600' : 'text-gray-400'}`}>
+                    Documents
                   </span>
                 </div>
               </div>
             </div>
 
-            <form onSubmit={handleCreateProject} className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex flex-col flex-1 overflow-hidden">
               {/* Content Area - Scrollable */}
               <div className="flex-1 overflow-y-auto px-6 py-6">
                 {/* Step 1: Basic Information */}
@@ -328,14 +377,18 @@ const AllProjects = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Start Date
+                          Start Date *
                         </label>
                         <input
                           type="date"
+                          required
                           value={formData.start_date}
                           onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Project start date is required
+                        </p>
                       </div>
 
                       <div>
@@ -348,6 +401,9 @@ const AllProjects = () => {
                           onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-base"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Optional - leave blank for ongoing projects
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -395,6 +451,24 @@ const AllProjects = () => {
                     )}
                   </div>
                 )}
+
+                {/* Step 3: Document Upload */}
+                {createStep === 3 && (
+                  <div className="space-y-5">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Upload Supporting Documents
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Add requirements, specifications, and other project-related files. This step is optional.
+                      </p>
+                      <ProjectDocumentUpload
+                        documents={projectDocuments}
+                        onChange={setProjectDocuments}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Footer - Action Buttons */}
@@ -419,6 +493,10 @@ const AllProjects = () => {
                             toast.error('Please enter a project title');
                             return;
                           }
+                          if (!formData.start_date) {
+                            toast.error('Please select a start date');
+                            return;
+                          }
                           setCreateStep(2);
                         }}
                         className="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium"
@@ -426,7 +504,7 @@ const AllProjects = () => {
                         Next: Configure Status
                       </button>
                     </>
-                  ) : (
+                  ) : createStep === 2 ? (
                     <>
                       <button
                         type="button"
@@ -436,7 +514,46 @@ const AllProjects = () => {
                         Back
                       </button>
                       <button
-                        type="submit"
+                        type="button"
+                        onClick={() => {
+                          // Validate step 2 before proceeding
+                          if (projectStatuses.length === 0) {
+                            toast.error('Please configure at least one status');
+                            return;
+                          }
+                          
+                          const startStatuses = projectStatuses.filter(s => s.is_start_status);
+                          const endStatuses = projectStatuses.filter(s => s.is_end_status);
+                          
+                          if (startStatuses.length !== 1) {
+                            toast.error('Please mark exactly one status as the start status');
+                            return;
+                          }
+                          
+                          if (endStatuses.length !== 1) {
+                            toast.error('Please mark exactly one status as the end status');
+                            return;
+                          }
+                          
+                          setCreateStep(3);
+                        }}
+                        className="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium"
+                      >
+                        Next: Add Documents
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setCreateStep(2)}
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-white transition-colors font-medium"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCreateProject}
                         className="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium"
                       >
                         Create Project
@@ -445,7 +562,7 @@ const AllProjects = () => {
                   )}
                 </div>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

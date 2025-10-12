@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuthStore } from '../stores/authStore';
 import api from '../utils/api';
 import { Task, Project } from '../types';
 import toast from 'react-hot-toast';
-import { FiPlus, FiCheckSquare, FiSearch } from 'react-icons/fi';
+import { FiPlus, FiCheckSquare, FiSearch, FiZap } from 'react-icons/fi';
 
 const Tasks = () => {
-  const { user } = useAuthStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
@@ -17,6 +15,7 @@ const Tasks = () => {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [projectFilter, setProjectFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [loadingAISuggestions, setLoadingAISuggestions] = useState(false);
   const [formData, setFormData] = useState({
     project_id: '',
     title: '',
@@ -75,6 +74,50 @@ const Tasks = () => {
     }
 
     setFilteredTasks(filtered);
+  };
+
+  const handleGetAISuggestions = async () => {
+    if (!formData.title) {
+      toast.error('Please enter a task title first');
+      return;
+    }
+
+    try {
+      setLoadingAISuggestions(true);
+      const response = await api.post('/ai/task-suggestions', {
+        title: formData.title,
+        description: formData.description,
+      });
+
+      const { data: suggestions, provider } = response.data;
+      
+      // Prefill form with AI suggestions
+      setFormData({
+        ...formData,
+        priority: suggestions.priority,
+        complexity: suggestions.complexity,
+        due_date: suggestions.due_date,
+        estimated_hours: suggestions.estimated_hours.toString(),
+      });
+
+      toast.success(`AI suggestions applied using ${provider}!`, {
+        duration: 4000,
+        icon: '🤖',
+      });
+
+      if (suggestions.reasoning) {
+        toast(suggestions.reasoning, {
+          duration: 6000,
+          icon: '💡',
+        });
+      }
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error || 'Failed to get AI suggestions';
+      toast.error(errorMsg, { duration: 5000 });
+      console.error('AI suggestions error:', error);
+    } finally {
+      setLoadingAISuggestions(false);
+    }
   };
 
   const handleCreateTask = async (e: React.FormEvent) => {
@@ -304,6 +347,28 @@ const Tasks = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Enter task description"
                 />
+              </div>
+
+              {/* AI Suggestions Button */}
+              <div className="flex items-center justify-center py-2">
+                <button
+                  type="button"
+                  onClick={handleGetAISuggestions}
+                  disabled={loadingAISuggestions || !formData.title}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                >
+                  {loadingAISuggestions ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Getting AI Suggestions...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiZap size={20} />
+                      <span>Get AI Suggestions</span>
+                    </>
+                  )}
+                </button>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import api from '../utils/api';
-import { Task, TaskComment, Attachment, User } from '../types';
+import { Task, TaskComment, Attachment, User, ProjectStatus } from '../types';
 import toast from 'react-hot-toast';
 import { FiArrowLeft, FiEdit3, FiSave, FiX, FiMessageCircle, FiPaperclip, FiTrash2, FiPlus } from 'react-icons/fi';
 
@@ -23,12 +23,15 @@ const TaskDetail = () => {
   const [attachmentType, setAttachmentType] = useState<'file' | 'url'>('file');
   const [urlInput, setUrlInput] = useState('');
   const [urlDescription, setUrlDescription] = useState('');
+  
+  // Project statuses for dynamic status options
+  const [projectStatuses, setProjectStatuses] = useState<ProjectStatus[]>([]);
 
   const [editForm, setEditForm] = useState({
     title: '',
     description: '',
     priority: 'medium' as 'low' | 'medium' | 'high',
-    status: 'todo' as 'todo' | 'in_progress' | 'done' | 'blocked',
+    status: '',
     complexity: 3,
     due_date: '',
     estimated_hours: '',
@@ -48,22 +51,44 @@ const TaskDetail = () => {
     try {
       setLoading(true);
       const response = await api.get(`/tasks/${id}`);
-      setTask(response.data.task);
+      const taskData = response.data.task;
+      setTask(taskData);
       setEditForm({
-        title: response.data.task.title,
-        description: response.data.task.description || '',
-        priority: response.data.task.priority,
-        status: response.data.task.status,
-        complexity: response.data.task.complexity,
-        due_date: response.data.task.due_date || '',
-        estimated_hours: response.data.task.estimated_hours || '',
-        assigned_to: response.data.task.assigned_to || 0,
+        title: taskData.title,
+        description: taskData.description || '',
+        priority: taskData.priority,
+        status: taskData.status,
+        complexity: taskData.complexity,
+        due_date: taskData.due_date || '',
+        estimated_hours: taskData.estimated_hours || '',
+        assigned_to: taskData.assigned_to || 0,
       });
+      
+      // Fetch project statuses for this task's project
+      if (taskData.project_id) {
+        await fetchProjectStatuses(taskData.project_id);
+      }
     } catch (error) {
       toast.error('Failed to fetch task details');
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProjectStatuses = async (projectId: number) => {
+    try {
+      const response = await api.get(`/project-statuses/project/${projectId}`);
+      setProjectStatuses(response.data.statuses || []);
+    } catch (error) {
+      console.error('Failed to fetch project statuses:', error);
+      // Fallback to default statuses if project statuses fail
+      setProjectStatuses([
+        { status_name: 'To Do', status_color: '#3B82F6', status_order: 0, is_start_status: true, is_end_status: false, description: 'Task not started' },
+        { status_name: 'In Progress', status_color: '#8B5CF6', status_order: 1, is_start_status: false, is_end_status: false, description: 'Task in progress' },
+        { status_name: 'Done', status_color: '#10B981', status_order: 2, is_start_status: false, is_end_status: true, description: 'Task completed' },
+        { status_name: 'Blocked', status_color: '#EF4444', status_order: 3, is_start_status: false, is_end_status: false, description: 'Task blocked' },
+      ]);
     }
   };
 
@@ -258,13 +283,27 @@ const TaskDetail = () => {
   }
 
   const getStatusColor = (status: string) => {
+    // Find the status in project statuses
+    const projectStatus = projectStatuses.find(s => s.status_name === status);
+    if (projectStatus) {
+      // Use the color from database
+      const color = projectStatus.status_color;
+      // Convert hex color to background and text classes
+      const bgColor = `${color}20`; // 20% opacity
+      const textColor = color;
+      return `text-[${textColor}] bg-[${bgColor}]`;
+    }
+    
+    // Fallback to default colors for unknown statuses
     const colors: Record<string, string> = {
       todo: 'bg-blue-100 text-blue-800',
+      'to do': 'bg-blue-100 text-blue-800',
       in_progress: 'bg-purple-100 text-purple-800',
+      'in progress': 'bg-purple-100 text-purple-800',
       done: 'bg-green-100 text-green-800',
       blocked: 'bg-red-100 text-red-800',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status.toLowerCase()] || 'bg-gray-100 text-gray-800';
   };
 
   return (
@@ -296,13 +335,16 @@ const TaskDetail = () => {
             {isEditing ? (
               <select
                 value={editForm.status}
-                onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
+                onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                 className={`px-4 py-2 rounded-full text-sm font-medium capitalize border-2 ${getStatusColor(editForm.status)}`}
               >
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="done">Done</option>
-                <option value="blocked">Blocked</option>
+                {projectStatuses
+                  .sort((a, b) => a.status_order - b.status_order)
+                  .map((status) => (
+                    <option key={status.status_name} value={status.status_name}>
+                      {status.status_name}
+                    </option>
+                  ))}
               </select>
             ) : (
               <span className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${getStatusColor(task.status)}`}>
@@ -751,7 +793,7 @@ const TaskDetail = () => {
               <div key={subtask.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200">
                 <span className="font-medium">{subtask.title}</span>
                 <span className={`ml-auto px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(subtask.status)}`}>
-                  {subtask.status}
+                  {subtask.status.replace('_', ' ')}
                 </span>
               </div>
             ))}

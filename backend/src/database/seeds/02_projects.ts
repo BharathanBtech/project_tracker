@@ -17,7 +17,7 @@ export async function seed(knex: Knex): Promise<void> {
       description: 'Building a modern e-commerce platform with AI-powered recommendations',
       start_date: '2025-01-01',
       end_date: '2025-06-30',
-      status: 'active',
+      status: 'In Progress',
       created_by: 2,
     },
     {
@@ -26,7 +26,7 @@ export async function seed(knex: Knex): Promise<void> {
       description: 'Secure mobile banking application with biometric authentication',
       start_date: '2025-02-01',
       end_date: '2025-08-31',
-      status: 'active',
+      status: 'Planning',
       created_by: 2,
     },
     {
@@ -35,7 +35,7 @@ export async function seed(knex: Knex): Promise<void> {
       description: 'Employee management and HR automation system',
       start_date: '2024-10-01',
       end_date: '2025-03-31',
-      status: 'on_hold',
+      status: 'On Hold',
       created_by: 1,
     },
   ]);

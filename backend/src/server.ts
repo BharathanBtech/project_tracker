@@ -13,6 +13,8 @@ import projectRoutes from './routes/projectRoutes';
 import taskRoutes from './routes/taskRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import projectStatusRoutes from './routes/projectStatusRoutes';
+import projectAttachmentRoutes from './routes/projectAttachmentRoutes';
+import aiRoutes from './routes/aiRoutes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -41,6 +43,8 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/project-statuses', projectStatusRoutes);
+app.use('/api', projectAttachmentRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

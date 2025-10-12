@@ -83,7 +83,7 @@ export const createTask = async (req: Request, res: Response) => {
         title,
         description,
         priority: priority || 'medium',
-        status: status || 'todo',
+        status: status || 'To Do',
         complexity: complexity || 3,
         due_date,
         estimated_hours,
@@ -92,7 +92,6 @@ export const createTask = async (req: Request, res: Response) => {
         parent_task_id,
       })
       .returning('*');
-
     res.status(201).json({ message: 'Task created successfully', task });
   } catch (error) {
     console.error('Create task error:', error);

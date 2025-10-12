@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import api from '../utils/api';
 import { Project, Task, ProjectMember, User } from '../types';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiUsers, FiCheckSquare, FiCalendar, FiEdit3, FiPlus, FiTrash2, FiX, FiSearch } from 'react-icons/fi';
+import { FiArrowLeft, FiUsers, FiCheckSquare, FiCalendar, FiEdit3, FiPlus, FiTrash2, FiX, FiSearch, FiFileText, FiDownload, FiEye, FiUser, FiClock } from 'react-icons/fi';
 import { ROLE_PERMISSIONS } from '../config/rolePermissions';
 
 const ProjectDetail = () => {
@@ -23,6 +23,10 @@ const ProjectDetail = () => {
   const [selectedUser, setSelectedUser] = useState<number | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>('developer');
   const [members, setMembers] = useState<ProjectMember[]>([]);
+  
+  // Project attachments state
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -41,11 +45,27 @@ const ProjectDetail = () => {
       setProject(projectRes.data.project);
       setTasks(tasksRes.data.tasks);
       setMembers(membersRes.data.members || []);
+      
+      // Fetch project attachments
+      await fetchProjectAttachments();
     } catch (error) {
       toast.error('Failed to fetch project details');
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProjectAttachments = async () => {
+    try {
+      setLoadingAttachments(true);
+      const response = await api.get(`/project-attachments/${id}`);
+      setAttachments(response.data.attachments || []);
+    } catch (error) {
+      console.error('Failed to fetch project attachments:', error);
+      setAttachments([]);
+    } finally {
+      setLoadingAttachments(false);
     }
   };
 
@@ -124,6 +144,26 @@ const ProjectDetail = () => {
   const canUpdateStatus = ['admin', 'manager', 'lead'].includes(user?.role || '');
   const canManageMembers = user?.role ? ROLE_PERMISSIONS[user.role]?.canManageProjectMembers : false;
 
+  const handleDownloadAttachment = (attachment: any) => {
+    if (attachment.file_url) {
+      // External URL - open in new tab
+      window.open(attachment.file_url, '_blank');
+    } else {
+      // File attachment - download from API
+      const token = localStorage.getItem('token');
+      const downloadUrl = `/api/project-attachments/${id}/${attachment.id}/download?token=${token}`;
+      window.open(downloadUrl, '_blank');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   const filteredUsers = allUsers.filter((u) => {
     const matchesSearch = 
       u.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -178,10 +218,12 @@ const ProjectDetail = () => {
       </Link>
 
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-        <div className="flex items-start justify-between mb-4">
-          <div>
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex-1">
             <h1 className="text-3xl font-bold text-gray-900">{project.title}</h1>
-            <p className="text-gray-600 mt-2">{project.description}</p>
+            {project.description && (
+              <p className="text-gray-600 mt-3 text-lg leading-relaxed">{project.description}</p>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <span
@@ -207,7 +249,51 @@ const ProjectDetail = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        {/* Project Details */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <div className="flex items-center gap-3">
+            <FiCalendar className="text-gray-400" size={20} />
+            <div>
+              <p className="text-sm text-gray-600">Start Date</p>
+              <p className="font-semibold">
+                {project.start_date
+                  ? new Date(project.start_date).toLocaleDateString()
+                  : 'Not set'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <FiCalendar className="text-gray-400" size={20} />
+            <div>
+              <p className="text-sm text-gray-600">End Date</p>
+              <p className="font-semibold">
+                {project.end_date
+                  ? new Date(project.end_date).toLocaleDateString()
+                  : 'Ongoing'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <FiUser className="text-gray-400" size={20} />
+            <div>
+              <p className="text-sm text-gray-600">Created By</p>
+              <p className="font-semibold">
+                {project.creator_first_name} {project.creator_last_name}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <FiClock className="text-gray-400" size={20} />
+            <div>
+              <p className="text-sm text-gray-600">Created</p>
+              <p className="font-semibold">
+                {new Date(project.created_at).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="flex items-center gap-3">
             <FiUsers className="text-gray-400" size={20} />
             <div>
@@ -223,14 +309,10 @@ const ProjectDetail = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <FiCalendar className="text-gray-400" size={20} />
+            <FiFileText className="text-gray-400" size={20} />
             <div>
-              <p className="text-sm text-gray-600">Timeline</p>
-              <p className="font-semibold">
-                {project.start_date
-                  ? new Date(project.start_date).toLocaleDateString()
-                  : 'Not set'}
-              </p>
+              <p className="text-sm text-gray-600">Documents</p>
+              <p className="font-semibold">{attachments.length}</p>
             </div>
           </div>
         </div>
@@ -344,6 +426,78 @@ const ProjectDetail = () => {
             <p className="text-gray-500 text-center py-4">No tasks yet</p>
           )}
         </div>
+      </div>
+
+      {/* Project Attachments */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Project Documents</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">
+              {attachments.length} document{attachments.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
+        
+        {loadingAttachments ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <span className="ml-2 text-gray-600">Loading documents...</span>
+          </div>
+        ) : attachments.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {attachments.map((attachment) => (
+              <div
+                key={attachment.id}
+                className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors"
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex-shrink-0">
+                    <FiFileText className="text-gray-400" size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate" title={attachment.file_name}>
+                      {attachment.file_name}
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      {attachment.file_size && (
+                        <span>{formatFileSize(attachment.file_size)}</span>
+                      )}
+                      {attachment.description && (
+                        <>
+                          <span>•</span>
+                          <span className="truncate" title={attachment.description}>
+                            {attachment.description}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Uploaded by {attachment.first_name} {attachment.last_name}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleDownloadAttachment(attachment)}
+                    className="p-2 text-primary-600 hover:bg-primary-100 rounded-lg transition-colors"
+                    title="Download document"
+                  >
+                    <FiDownload size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <FiFileText className="mx-auto text-gray-300" size={48} />
+            <p className="text-gray-500 mt-2">No documents uploaded yet</p>
+            <p className="text-sm text-gray-400 mt-1">
+              Documents can be added during project creation
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Update Status Modal */}
