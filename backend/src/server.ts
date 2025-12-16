@@ -27,7 +27,14 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+// CORS configuration - allow frontend origin in production
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL || '*' 
+    : '*',
+  credentials: true,
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
@@ -49,15 +56,32 @@ app.use('/api/ai', aiRoutes);
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Health check
+// Health check (must be before catch-all routes)
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// 404 handler
-app.use((req: Request, res: Response) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+// Serve frontend static files in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendPath = path.join(__dirname, '../../frontend/dist');
+  app.use(express.static(frontendPath));
+  
+  // Serve index.html for all non-API routes (SPA routing)
+  app.get('*', (req: Request, res: Response) => {
+    // Don't serve frontend for API routes or health check
+    if (req.path.startsWith('/api') || req.path === '/health') {
+      return res.status(404).json({ error: 'Route not found' });
+    }
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+}
+
+// 404 handler (only for API routes in production, or all routes in development)
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req: Request, res: Response) => {
+    res.status(404).json({ error: 'Route not found' });
+  });
+}
 
 // Error handler
 app.use(errorHandler);

@@ -10,7 +10,8 @@
     "migrate:latest": "knex migrate:latest",
     "migrate:rollback": "knex migrate:rollback",
     "seed:run": "knex seed:run",
-    "db:setup": "npm run migrate:latest && npm run seed:run"
+    "db:setup": "npm run migrate:latest && npm run seed:run",
+    "postdeploy": "npm run migrate:latest"
   },
   "keywords": [
     "project-tracker",

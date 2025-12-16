@@ -1,0 +1,55 @@
+services:
+  # Backend API Service (serves both API and frontend)
+  - type: web
+    name: project-tracker-backend
+    env: node
+    plan: starter
+    buildCommand: cd backend && npm install && npm run build && cd ../frontend && npm install && npm run build
+    startCommand: cd backend && npm start
+    postDeployCommand: cd backend && npm run migrate:latest
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DB_HOST
+        fromDatabase:
+          name: project-tracker-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: project-tracker-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: project-tracker-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: project-tracker-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: project-tracker-db
+          property: database
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: MAX_FILE_SIZE
+        value: 5242880
+      - key: UPLOAD_DIR
+        value: uploads
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: project-tracker-backend
+          property: host
+    healthCheckPath: /health
+
+databases:
+  - name: project-tracker-db
+    plan: starter
+    databaseName: project_tracker
+    user: project_tracker_user
+
