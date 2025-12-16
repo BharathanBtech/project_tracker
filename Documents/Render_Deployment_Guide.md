@@ -83,7 +83,27 @@ Add the following environment variables in the Render dashboard:
 **Optional:**
 - `FRONTEND_URL` = Your Render service URL (for CORS)
 
-### 5. Verify Deployment
+### 5. Deploy Frontend as Static Site (Alternative Approach)
+
+If you prefer to deploy the frontend separately as a static site:
+
+1. Go to Render Dashboard → "New +" → "Static Site"
+2. Connect your Git repository
+3. Configure:
+   - **Name**: `project-tracker-frontend`
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm install && npm run build`
+   - **Publish Directory**: `dist`
+4. **Important**: Add Environment Variable:
+   - **Key**: `VITE_API_URL`
+   - **Value**: Your backend service URL (e.g., `https://project-tracker-backend.onrender.com/api`)
+5. Click "Create Static Site"
+
+**Note**: If deploying frontend separately, you'll need to:
+- Update CORS settings in your backend to allow your frontend URL
+- Set `FRONTEND_URL` environment variable in backend to your static site URL
+
+### 6. Verify Deployment
 
 1. Check the deployment logs for any errors
 2. Visit your service URL (e.g., `https://project-tracker-backend.onrender.com`)

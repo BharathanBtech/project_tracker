@@ -11,7 +11,6 @@ import {
   FiTrendingUp,
   FiArrowRight,
 } from 'react-icons/fi';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
   const { user } = useAuthStore();

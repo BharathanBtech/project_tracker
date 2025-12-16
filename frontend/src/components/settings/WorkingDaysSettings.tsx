@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FiPlus, FiTrash2, FiSave, FiX } from 'react-icons/fi';
+import { FiPlus, FiTrash2 } from 'react-icons/fi';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 

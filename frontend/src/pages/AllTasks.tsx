@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuthStore } from '../stores/authStore';
 import api from '../utils/api';
 import { Task, Project } from '../types';
 import toast from 'react-hot-toast';
 import { FiPlus, FiCheckSquare, FiSearch, FiLock } from 'react-icons/fi';
 
 const AllTasks = () => {
-  const { user } = useAuthStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);

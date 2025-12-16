@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FiSave, FiRefreshCw, FiInfo } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';

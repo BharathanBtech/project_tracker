@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useAuthStore } from '../stores/authStore';
 import api from '../utils/api';
 import { LeaveDate } from '../types';
 import toast from 'react-hot-toast';
 import { FiPlus, FiCalendar } from 'react-icons/fi';
 
 const Leaves = () => {
-  const { user } = useAuthStore();
   const [leaves, setLeaves] = useState<LeaveDate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);

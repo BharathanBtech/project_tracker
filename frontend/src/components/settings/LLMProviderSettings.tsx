@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FiPlus, FiEdit3, FiTrash2, FiSave, FiX, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiPlus, FiEdit3, FiEye, FiEyeOff } from 'react-icons/fi';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -85,16 +85,6 @@ const LLMProviderSettings = () => {
       fetchProviders();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create LLM provider');
-    }
-  };
-
-  const handleUpdateProvider = async (provider: LLMProvider) => {
-    try {
-      await api.put(`/settings/llm-providers/${provider.id}`, provider);
-      toast.success('LLM provider updated successfully');
-      fetchProviders();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to update LLM provider');
     }
   };
 

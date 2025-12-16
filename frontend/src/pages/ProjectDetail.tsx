@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/authStore';
 import api from '../utils/api';
 import { Project, Task, ProjectMember, User } from '../types';
 import toast from 'react-hot-toast';
-import { FiArrowLeft, FiUsers, FiCheckSquare, FiCalendar, FiEdit3, FiPlus, FiTrash2, FiX, FiSearch, FiFileText, FiDownload, FiEye, FiUser, FiClock } from 'react-icons/fi';
+import { FiArrowLeft, FiUsers, FiCheckSquare, FiCalendar, FiEdit3, FiPlus, FiTrash2, FiX, FiSearch, FiFileText, FiDownload, FiUser, FiClock } from 'react-icons/fi';
 import { ROLE_PERMISSIONS } from '../config/rolePermissions';
 
 const ProjectDetail = () => {
